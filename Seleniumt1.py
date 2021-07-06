@@ -26,5 +26,5 @@ finally:
     driver.quit()
 #main = driver.find_element_by_id('main')
 
-#time.sleep(6)
+#time.sleep(6) 
 #driver.quit()
