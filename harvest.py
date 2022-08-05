@@ -14,6 +14,8 @@ from creds import DoneDone, Harvest, Sk, Knysys, ALI, Crontab
 from helpers import get_progress_report_email_subject, get_progress_report_body_template, have_network_connection, \
     show_netflix
 
+WEEk_REQ_HOURS = Harvest().req_hours
+
 
 def harvest_sign_in(driver, task_id):
     # Task reference generation
@@ -61,13 +63,17 @@ def harvest_sign_in(driver, task_id):
     # driver.get(DoneDone().web_link_ali)
     time.sleep(5)
 
+    # Search icon
+    driver.find_element(By.XPATH, '/html/body/div[1]/div/div[1]/div[2]').click()
+    time.sleep(1)
+
     # Task reference find
-    driver.find_element(By.XPATH, '/html/body/div[1]/div/div[2]/div[2]/div[1]/div/div/input').send_keys(task_ref)
+    driver.find_element(By.XPATH, '/html/body/div[1]/div/div[1]/div[2]/div/div/div/input').send_keys(task_ref)
     time.sleep(2)
 
     # Task reference click
-    driver.find_element(By.XPATH, '/html/body/div[1]/div/div[2]/div[3]/table/tr[2]/td[2]/a/div[1]').click()
-    time.sleep(2)
+    driver.find_element(By.CLASS_NAME, 'el-dropdown-item__avatar-row').click()
+    time.sleep(3)
 
     # Harvest iframe Handling
     driver.find_element(By.XPATH, '/html/body/div[1]/div/div[3]/div/main/div/div/div[2]/div[1]/div/div/i').click()
@@ -143,22 +149,37 @@ def harvest_sign_out(driver, sign_out=None):
         total_time = driver.find_element(By.XPATH, '//*[@id="day-view-entries"]/tfoot/tr/td[2]').text
 
         # Skype connection.
-        sk = Skype(Sk().email, Sk().password)
+        try:
+            sk = Skype(Sk().email, Sk().password)
+        except ConnectionError:
+            return "Skype", "Connection", "Error"
 
         # Sending message of total time for the day to the project manager.
         contact = sk.contacts[Sk().br_adeel_ref]
-        msg = f'Date: {datetime.strftime(date.today(), "%B %dth, %Y")}\nMy total time for the day:\t{total_time}'
+        _, _date = get_progress_report_email_subject()
+
+        weekend_days = ['Friday', 'Saturday', 'Sunday']
+        week_time = driver.find_element(By.XPATH, '//*[@id="day-view-week-nav-total"]/div').text
+        week_hours_completed = True if int(week_time.split(':')[0]) >= WEEk_REQ_HOURS else False
+        
+        if week_hours_completed and date.today().strftime('%A') in weekend_days:
+            msg = f'Date: {_date}\n<--Harvest-->\nMy total day time:\t{total_time}\nMy total week time:\t{week_time}'
+        else:
+            msg = f'Date: {_date}\n<--Harvest-->\nMy total day time:\t{total_time}'
+
         contact.chat.sendMsg(msg)
+        msg_send_status = 'Message has been sent to your line manager of harvest tracking.'
 
         # Last task reference get and update in the bashrc file for later use.
         last_task_ref_obj = driver.find_elements(By.CLASS_NAME, 'remote-entry-data').pop().text
         last_task_ref_id = last_task_ref_obj.split(':').pop(0)
         cron_updated = update_crontab(last_task_ref_id)
-        cron_update_status = "Crontab has been updated successfully!" if cron_updated else "Crontab not updated!"
+        cron_update_status = "Crontab has been updated successfully," if cron_updated else "Crontab not updated!,"
     else:
-        cron_update_status = "Crontab will update at the time of Sign Out."
+        cron_update_status = "Crontab will update at the time of Sign Out,"
+        msg_send_status = 'No msg sent.'
     driver.close()
-    return "Assalam o Alaikum, Take care!", cron_update_status
+    return "Assalam o Alaikum, Take care!,", cron_update_status, msg_send_status
 
 
 def lunch_end(driver):
@@ -342,7 +363,7 @@ if __name__ == "__main__":
                 status = lunch_end(_driver)
                 print(status)
             elif sys.argv[1] == "sign-out":
-                status, status_1 = harvest_sign_out(_driver, sign_out=True)
-                print(status, status_1)
+                status, status_1, status_2 = harvest_sign_out(_driver, sign_out=True)
+                print(status, status_1, status_2)
             else:
                 print('Required arguments missing!')

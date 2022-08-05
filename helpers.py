@@ -3,27 +3,41 @@ import requests
 import turtle
 from time import sleep
 
+PROJECTS = {'ali': 'ALI', 'auto': 'Automation'}
+
 
 def get_progress_report_email_subject(project=None):
     if not project:
-        project = 'ALI'
+        project = PROJECTS.get('ali')
 
-    subject = f'{project} Progress Report - {datetime.strftime(datetime.today().date(), "%B %dth, %Y")}'
-    if str(datetime.today().date().day)[-1] == '1':
-        subject = subject.split(',').pop(0).split(' ').pop().replace('th', 'st')
-    elif str(datetime.today().date().day)[-1] == '2':
-        subject = subject.split(',').pop(0).split(' ').pop().replace('th', 'nd')
-    elif str(datetime.today().date().day)[-1] == '3':
-        subject = subject.split(',').pop(0).split(' ').pop().replace('th', 'rd')
-    _date = subject.split('-').pop().strip()
-    return subject, _date
+    date_today = datetime.strftime(datetime.today().date(), "%B %dth, %Y")
+    if datetime.today().date().day in [1, 21, 31]:
+        _month = date_today.split(',')[0].split(' ').pop(0)
+        _day = date_today.split(',')[0].split(' ')[-1].replace('th', 'st')
+        _year = date_today.split(',').pop()
+        date_today = f'{_month} {_day},{_year}'
+
+    elif datetime.today().date().day in [2, 22]:
+        _month = date_today.split(',')[0].split(' ').pop(0)
+        _day = date_today.split(',')[0].split(' ')[-1].replace('th', 'nd')
+        _year = date_today.split(',').pop()
+        date_today = f'{_month} {_day},{_year}'
+
+    elif datetime.today().date().day in [3, 23]:
+        _month = date_today.split(',')[0].split(' ').pop(0)
+        _day = date_today.split(',')[0].split(' ')[-1].replace('th', 'rd')
+        _year = date_today.split(',').pop()
+        date_today = f'{_month} {_day},{_year}'
+
+    subject = f'{project} Progress Report - {date_today.replace(",", "")}'
+    return subject, date_today
 
 
-def get_progress_report_body_template(_date, task_ref=None):
+def get_progress_report_body_template(date_today, task_ref=None):
     if not task_ref:
         return
     body_template = f"""AssalamuAlaikum,\n
-    Below you will find the progress report for {_date}.\n\nTask: \n
+    Below you will find the progress report for {date_today}.\n\nTask: \n
     Ref: {task_ref}\nStatus: In progress\n\nUpdate:\n"""
 
     return body_template

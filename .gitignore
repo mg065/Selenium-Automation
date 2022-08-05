@@ -1,7 +1,8 @@
 .idea
 .idea/*
-tst.*
+tst*.*
 drivers/
 __pycache__/
 creds.py
+*.txt
 
